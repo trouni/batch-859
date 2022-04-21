@@ -165,13 +165,6 @@ class Seller:
         # $CHALLENGIFY_END
 
     def get_training_data(self):
-        """
-        Returns a DataFrame with:
-        ['seller_id', 'seller_city', 'seller_state', 'delay_to_carrier',
-        'wait_time', 'date_first_sale', 'date_last_sale', 'months_on_olist', 'share_of_one_stars',
-        'share_of_five_stars', 'review_score', 'n_orders', 'quantity',
-        'quantity_per_order', 'sales']
-        """
 
         training_set =\
             self.get_seller_features()\
@@ -180,13 +173,19 @@ class Seller:
                ).merge(
                 self.get_active_dates(), on='seller_id'
                ).merge(
+                self.get_review_score(), on='seller_id'
+               ).merge(
                 self.get_quantity(), on='seller_id'
                ).merge(
                 self.get_sales(), on='seller_id'
                )
+        # Add seller economics (revenues, profits)
+        olist_monthly_fee = 80
+        olist_sales_cut = 0.1
 
-        if self.get_review_score() is not None:
-            training_set = training_set.merge(self.get_review_score(),
-                                              on='seller_id')
+        training_set['revenues'] = training_set['months_on_olist'] * olist_monthly_fee\
+            + olist_sales_cut * training_set['sales']
+
+        training_set['profits'] = training_set['revenues'] - training_set['cost_of_reviews']
 
         return training_set
